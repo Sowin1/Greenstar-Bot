@@ -1,0 +1,25 @@
+{
+  "name": "greenstar",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Greenstar discord bot actually focused on the prognostic",
+  "main": "src/index.js",
+  "author": "Timéo `Sowin` M",
+  "scripts": {
+    "start": "cross-env NODE_ENV=production node src/index.js",
+    "dev": "cross-env NODE_ENV=dev nodemon src/index.js",
+    "deploy:dev": "cross-env NODE_ENV=dev node deploy-commands.js",
+    "deploy:prod": "cross-env NODE_ENV=production node deploy-commands.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "cross-env": "^7.0.3"
+  }
+}

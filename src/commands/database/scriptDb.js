@@ -71,13 +71,53 @@ setupDatabase();
 
 export default db;
 
-function getTeam(idTeam) {
-  const stmt = db.prepare(`SELECT * FROM teams WHERE idTeam = ?`);
-  return stmt.get(idTeam) ?? null;
+function getTeamStats(teamName) {
+  const name = teamName.trim().toLowerCase();
+
+  const bets = db
+    .prepare(
+      `
+    SELECT bet1Name, bet2Name, result
+    FROM bets
+    WHERE result IS NOT NULL
+  `
+    )
+    .all();
+
+  let wins = 0;
+  let losses = 0;
+  let voids = 0;
+
+  for (const b of bets) {
+    const team1 = b.bet1Name.trim().toLowerCase();
+    const team2 = b.bet2Name.trim().toLowerCase();
+
+    if (b.result === "void") {
+      if (team1 === name || team2 === name) {
+        voids++;
+      }
+      continue;
+    }
+
+    if (team1 === name) {
+      if (b.result === "bet1") wins++;
+      else losses++;
+    }
+
+    if (team2 === name) {
+      if (b.result === "bet2") {
+        wins++;
+      } else {
+        losses++;
+      }
+    }
+  }
+
+  return { wins, losses, voids };
 }
 
 function getTeamByName(name) {
-  const stmt = db.prepare(`SELECT * FROM teams WHERE name = ?`);
+  const stmt = db.prepare(`SELECT * FROM teams WHERE LOWER(TRIM(name)) = ?`);
   return stmt.get(name) ?? null;
 }
 
@@ -307,10 +347,10 @@ export {
   db,
 
   // teams
-  getTeam,
+  getTeamStats,
   getTeamByName,
-  getTeams,
   createOrUpdateTeam,
+  getTeams,
 
   // bettors
   getBettor,

@@ -1,4 +1,4 @@
-# discordjs-v14-devprod
+# Greenstar Bot
 
 Bot Discord **Greenstar** avec:
 

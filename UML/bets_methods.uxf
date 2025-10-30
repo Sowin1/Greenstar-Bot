@@ -1,0 +1,50 @@
+<diagram program="umletino" version="15.1"><zoom_level>10</zoom_level><element><id>UMLClass</id><coordinates><x>50</x><y>40</y><w>260</w><h>260</h></coordinates><panel_attributes>Bettors
+--
+-discordID: TEXT (PK)
+-nbPoints: INT
+-betSuccess: INT
+-totalBet: INT
+--
++getBettor(discordID): Bettor
++setBettor(discordID, nbPoints, betSuccess, totalBet): void
++getLeaderboard(limit): Bettor[]
+  </panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>430</x><y>0</y><w>300</w><h>360</h></coordinates><panel_attributes>Bets
+--
+-idBet: TEXT (PK)
+-bet1Name: TEXT
+-bet2Name: TEXT
+-cotationBet1: REAL
+-cotationBet2: REAL
+-result: TEXT
+-createdAt: INT
+-status: TEXT
+-updatedAt: INT
+-settledAt: INT
+-lockAt: INT
+-minStake: INT
+-maxStake: INT
+-suspendReason: TEXT
+--
++getBet(idBet): Bet|null
++createBet(name1, name2, c1, c2): idBet
++setBetResult(idBet, result): void
++deleteBet(idBet): number
++getActiveBets(): Bet[]
++getUserHistory(discordID): History[]
+  </panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>190</x><y>350</y><w>300</w><h>300</h></coordinates><panel_attributes>Wagers
+--
+-wagerID: TEXT (PK)
+-idBet: TEXT (FK)
+-discordID: TEXT (FK)
+-side: TEXT
+-stake: INT
+-odds: REAL
+-placedAt: INT
+-payout: INT
+-outcome: TEXT
+--
++getWagers(idBet): Wager[]
++getUserWager(idBet, discordID): Wager|null
++placeWager(idBet, discordID, side, stake, odds): wagerID
++removeWager(wagerID): void
+  </panel_attributes><additional_attributes></additional_attributes></element></diagram>

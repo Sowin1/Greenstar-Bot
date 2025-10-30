@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  PermissionFlagsBits,
+} from "discord.js";
 import {
   createOrUpdateTeam,
   getTeamByName,
@@ -37,6 +41,14 @@ export default {
     const name = interaction.options.getString("nom");
 
     if (sub == "creer") {
+      if (
+        !interaction.member.permissions.has(PermissionFlagsBits.Administrator)
+      ) {
+        return interaction.reply({
+          content: "❌ Tu n'as pas la permission d'utiliser cette commande.",
+          ephemeral: true,
+        });
+      }
       const img = interaction.options.getString("image");
 
       try {

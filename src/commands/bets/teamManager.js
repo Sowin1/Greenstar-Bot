@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   PermissionFlagsBits,
+  MessageFlags,
 } from "discord.js";
 import {
   createOrUpdateTeam,
@@ -46,7 +47,7 @@ export default {
       ) {
         return interaction.reply({
           content: "❌ Tu n'as pas la permission d'utiliser cette commande.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
       const img = interaction.options.getString("image");

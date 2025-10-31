@@ -10,6 +10,8 @@ import {
   getTeamStats,
 } from "../database/scriptDb.js";
 
+import { createOrUpdateTeamEmoji } from "../../../emoji-manager.js";
+
 export default {
   data: new SlashCommandBuilder()
     .setName("team")
@@ -54,6 +56,7 @@ export default {
 
       try {
         createOrUpdateTeam(name, img);
+        createOrUpdateTeamEmoji(interaction.client, name, img);
       } catch (e) {
         return interaction.reply("⚠️ " + e.message);
       }
@@ -79,6 +82,7 @@ export default {
       } catch (e) {
         return interaction.reply("⚠️ " + e.message);
       }
+
       const embed = new EmbedBuilder()
         .setTitle(`Présentation de l'équipe ${team.name}`)
         .setThumbnail(team.logoUrl || interaction.guild.iconURL())

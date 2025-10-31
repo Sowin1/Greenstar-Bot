@@ -4,16 +4,11 @@ import crypto from "crypto";
 const db = new Database("dbBets.sqlite");
 db.pragma("foreign_keys = ON");
 
-function colMissing(table, col) {
-  const rows = db.prepare(`PRAGMA table_info(${table})`).all();
-  return !rows.some((r) => r.name === col);
-}
-
 function setupDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS teams (
       idTeam TEXT PRIMARY KEY,
-      name TEXT UNIQUE NOT NULL,
+      name TEXT UNIQUE NOT NULL COLLATE NOCASE,
       logoUrl TEXT
     );
 
@@ -59,11 +54,9 @@ function setupDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_wagers_bet ON wagers(idBet);
     CREATE INDEX IF NOT EXISTS idx_wagers_user ON wagers(discordID);
-  `);
 
-  db.exec(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_wagers_user_bet ON wagers(discordID, idBet)`
-  );
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_wagers_user_bet ON wagers(discordID, idBet);
+  `);
 
   console.log("✅ Base de données prête !");
 }
@@ -71,16 +64,20 @@ setupDatabase();
 
 export default db;
 
+/* -----------------------------------------
+   TEAMS
+------------------------------------------ */
+
 function getTeamStats(teamName) {
   const name = teamName.trim().toLowerCase();
 
   const bets = db
     .prepare(
       `
-    SELECT bet1Name, bet2Name, result
-    FROM bets
-    WHERE result IS NOT NULL
-  `
+      SELECT bet1Name, bet2Name, result
+      FROM bets
+      WHERE result IS NOT NULL
+    `
     )
     .all();
 
@@ -93,9 +90,7 @@ function getTeamStats(teamName) {
     const team2 = b.bet2Name.trim().toLowerCase();
 
     if (b.result === "void") {
-      if (team1 === name || team2 === name) {
-        voids++;
-      }
+      if (team1 === name || team2 === name) voids++;
       continue;
     }
 
@@ -105,11 +100,8 @@ function getTeamStats(teamName) {
     }
 
     if (team2 === name) {
-      if (b.result === "bet2") {
-        wins++;
-      } else {
-        losses++;
-      }
+      if (b.result === "bet2") wins++;
+      else losses++;
     }
   }
 
@@ -117,8 +109,9 @@ function getTeamStats(teamName) {
 }
 
 function getTeamByName(name) {
-  const stmt = db.prepare(`SELECT * FROM teams WHERE LOWER(TRIM(name)) = ?`);
-  return stmt.get(name) ?? null;
+  return (
+    db.prepare(`SELECT * FROM teams WHERE name = ?`).get(name.trim()) ?? null
+  );
 }
 
 function getTeams() {
@@ -126,11 +119,9 @@ function getTeams() {
 }
 
 function createOrUpdateTeam(name, logoUrl = null) {
-  const cleanName = name.trim().toLowerCase();
-
   const existing = db
-    .prepare(`SELECT * FROM teams WHERE LOWER(TRIM(name)) = ?`)
-    .get(cleanName);
+    .prepare(`SELECT * FROM teams WHERE name = ?`)
+    .get(name.trim());
 
   if (existing) {
     if (logoUrl) {
@@ -141,10 +132,7 @@ function createOrUpdateTeam(name, logoUrl = null) {
         WHERE idTeam = ?
       `
       ).run(logoUrl, existing.idTeam);
-
-      return existing.idTeam;
     }
-
     return existing.idTeam;
   }
 
@@ -158,10 +146,14 @@ function createOrUpdateTeam(name, logoUrl = null) {
   return idTeam;
 }
 
-//   BETTORS
+/* -----------------------------------------
+   BETTORS
+------------------------------------------ */
+
 function getBettor(discordID) {
-  const stmt = db.prepare(`SELECT * FROM bettors WHERE discordID = ?`);
-  let user = stmt.get(discordID);
+  let user = db
+    .prepare(`SELECT * FROM bettors WHERE discordID = ?`)
+    .get(discordID);
 
   if (!user) {
     db.prepare(`INSERT INTO bettors (discordID) VALUES (?)`).run(discordID);
@@ -194,7 +186,9 @@ function getLeaderboard(limit = 10) {
     .all(limit);
 }
 
-//   BETS
+/* -----------------------------------------
+   BETS
+------------------------------------------ */
 
 function getBet(idBet) {
   return db.prepare(`SELECT * FROM bets WHERE idBet = ?`).get(idBet) ?? null;
@@ -203,12 +197,13 @@ function getBet(idBet) {
 function createBet(bet1ID, bet2ID, cotationBet1, cotationBet2) {
   const idBet = crypto.randomUUID();
   const createdAt = Date.now();
+  const status = "open";
 
   db.prepare(
     `INSERT INTO bets (
-      idBet, bet1ID, bet2ID, cotationBet1, cotationBet2, createdAt
-    ) VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(idBet, bet1ID, bet2ID, cotationBet1, cotationBet2, createdAt);
+      idBet, bet1ID, bet2ID, cotationBet1, cotationBet2, createdAt, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(idBet, bet1ID, bet2ID, cotationBet1, cotationBet2, createdAt, status);
 
   return idBet;
 }
@@ -219,12 +214,16 @@ function getActiveBets() {
       `SELECT
         b.*,
         t1.name AS team1,
-        t2.name AS team2
+        t2.name AS team2,
+        COALESCE(SUM(CASE WHEN w.side='bet1' THEN w.stake END), 0) AS stake1,
+        COALESCE(SUM(CASE WHEN w.side='bet2' THEN w.stake END), 0) AS stake2
       FROM bets b
       JOIN teams t1 ON t1.idTeam = b.bet1ID
       JOIN teams t2 ON t2.idTeam = b.bet2ID
-      WHERE b.result IS NULL
-      ORDER BY createdAt DESC`
+      LEFT JOIN wagers w ON w.idBet = b.idBet
+      WHERE b.status = 'open'
+      GROUP BY b.idBet
+      ORDER BY b.createdAt DESC`
     )
     .all();
 }
@@ -294,7 +293,9 @@ function getUserHistory(discordID) {
     .all(discordID);
 }
 
-//   WAGERS
+/* -----------------------------------------
+   WAGERS
+------------------------------------------ */
 
 function getWagers(idBet) {
   return db
